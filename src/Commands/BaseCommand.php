@@ -51,7 +51,7 @@ class BaseCommand extends Command
         $this->commandData->modelName = $this->argument('model');
 
         $this->commandData->initCommandData();
-        $this->commandData->getInputFields();
+        $this->commandData->getFields();
     }
 
     public function generateCommonItems()
@@ -123,7 +123,7 @@ class BaseCommand extends Command
             $routeGenerator->generate();
         }
 
-        if (!$this->isSkip('menu') and$this->commandData->config->getAddOn('menu.enabled')) {
+        if (!$this->isSkip('menu') and $this->commandData->config->getAddOn('menu.enabled')) {
             $menuGenerator = new MenuGenerator($this->commandData);
             $menuGenerator->generate();
         }
@@ -138,8 +138,7 @@ class BaseCommand extends Command
         if ($runMigration) {
             if ($this->commandData->config->forceMigrate) {
                 $this->call('migrate');
-            }
-            elseif (!$this->commandData->getOption('fromTable') and !$this->isSkip('migration')) {
+            } elseif (!$this->commandData->getOption('fromTable') and !$this->isSkip('migration')) {
                 if ($this->confirm("\nDo you want to migrate database? [y|N]", false)) {
                     $this->call('migrate');
                 }
@@ -153,8 +152,8 @@ class BaseCommand extends Command
 
     public function isSkip($skip)
     {
-        if($this->commandData->getOption('skip')) {
-            return in_array($skip, (array)$this->commandData->getOption('skip'));
+        if ($this->commandData->getOption('skip')) {
+            return in_array($skip, (array) $this->commandData->getOption('skip'));
         }
 
         return false;
@@ -169,16 +168,24 @@ class BaseCommand extends Command
     {
         $fileFields = [];
 
-        foreach ($this->commandData->inputFields as $field) {
+        foreach ($this->commandData->fields as $field) {
             $fileFields[] = [
-                'fieldInput'  => $field['fieldInput'],
-                'htmlType'    => $field['htmlType'],
-                'validations' => $field['validations'],
-                'searchable'  => $field['searchable'],
-                'fillable'    => $field['fillable'],
-                'primary'     => $field['primary'],
-                'inForm'      => $field['inForm'],
-                'inIndex'     => $field['inIndex'],
+                'name'        => $field->name,
+                'dbType'      => $field->dbInput,
+                'htmlType'    => $field->htmlInput,
+                'validations' => $field->validations,
+                'searchable'  => $field->isSearchable,
+                'fillable'    => $field->isFillable,
+                'primary'     => $field->isPrimary,
+                'inForm'      => $field->inForm,
+                'inIndex'     => $field->inIndex,
+            ];
+        }
+
+        foreach ($this->commandData->relations as $relation) {
+            $fileFields[] = [
+                'type'     => 'relation',
+                'relation' => $relation->type.','.implode(','.$relation->inputs),
             ];
         }
 
@@ -197,6 +204,7 @@ class BaseCommand extends Command
     /**
      * @param $fileName
      * @param string $prompt
+     *
      * @return bool
      */
     protected function confirmOverwrite($fileName, $prompt = '')
@@ -224,7 +232,10 @@ class BaseCommand extends Command
             ['primary', null, InputOption::VALUE_REQUIRED, 'Custom primary key'],
             ['prefix', null, InputOption::VALUE_REQUIRED, 'Prefix for all files'],
             ['paginate', null, InputOption::VALUE_REQUIRED, 'Pagination for index.blade.php'],
-            ['skip', null, InputOption::VALUE_REQUIRED, 'Skip Specific Items to Generate (migration,model,controllers,api_controller,scaffold_controller,repository,requests,api_requests,scaffold_requests,routes,api_routes,scaffold_routes,views,tests,menu,dump-autoload)']
+            ['skip', null, InputOption::VALUE_REQUIRED, 'Skip Specific Items to Generate (migration,model,controllers,api_controller,scaffold_controller,repository,requests,api_requests,scaffold_requests,routes,api_routes,scaffold_routes,views,tests,menu,dump-autoload)'],
+            ['datatables', null, InputOption::VALUE_REQUIRED, 'Override datatables settings'],
+            ['views', null, InputOption::VALUE_REQUIRED, 'Specify only the views you want generated: index,create,edit,show'],
+            ['relations', null, InputOption::VALUE_NONE, 'Specify if you want to pass relationships for fields'],
         ];
     }
 
